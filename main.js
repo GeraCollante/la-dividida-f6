@@ -5,8 +5,8 @@ import { buildTowers } from './js/towers.js';
 import { buildGround } from './js/site.js';
 import { buildCantina } from './js/cantina.js';
 import { buildTables, buildBleachers } from './js/furniture.js';
-import { buildCorridorFence } from './js/perimeter.js';
-import { buildComplexSign, buildDimensions } from './js/signage.js';
+import { buildDimensions } from './js/signage.js';
+import { buildTerrain } from './js/terrain.js';
 import { setDay } from './js/lighting.js';
 import { setupUI } from './js/ui.js';
 
@@ -20,13 +20,12 @@ scene.add(court2);
 // ---------- torres de iluminación (coords de mundo, usan las dos canchas ya ubicadas) ----------
 buildTowers();
 
-// ---------- terreno, cantina, mobiliario, cerco del pasillo, cartel y cotas ----------
+// ---------- terreno, cantina, mobiliario y cotas ----------
 buildGround();
+buildTerrain();
 buildCantina();
 buildTables();
 buildBleachers();
-buildCorridorFence();
-buildComplexSign();
 const dimsGroup = buildDimensions();
 
 // ---------- luces / día-noche ----------

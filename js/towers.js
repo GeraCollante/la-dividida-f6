@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { scene } from './setup.js';
 import { postMat } from './materials.js';
 import { W, H, COURT_OFFSET } from './config.js';
+import { FENCE_Z1, FENCE_Z2 } from './terrain.js';
 
 // ---------- torres de iluminación (coords de mundo, después de clonar las canchas) ----------
 export const lampTargets = [];
@@ -46,13 +47,32 @@ export function buildTowers() {
   const court1Z = 0, court2Z = COURT_OFFSET;
   const zc = (court1Z + court2Z) / 2;            // línea divisoria
   const towerXs = [-W / 2 - 2, 0, W / 2 + 2];
+  const fenceX = W / 2 + 2;   // columna pegada a la reja (lado Av. 25 de Septiembre / Alvear)
+  const wallX = -W / 2 - 2;   // columna pegada al lindero/mural (lado López) — 2026-07-13
+  const edgeXs = [fenceX, wallX];
   const aimFor = (x, z, cz) => ({ tx: x * 0.5, tz: cz + (z - cz) * 0.45 });
 
   towerXs.forEach(x => {
+    // ⭐ en las columnas pegadas a un borde (reja de Alvear/25Sept, o lindero/mural de López),
+    // las 2 torres EXTERNAS se corren a las puntas reales de ese borde en vez de ir pegadas a
+    // cada arco — así queda libre el medio para los portones (2026-07-13).
+    const zOut1 = x === fenceX ? FENCE_Z1 : court1Z - (H / 2 + 2);
+    const zOut2 = x === fenceX ? FENCE_Z2 : court2Z + (H / 2 + 2);
+
     // torres externas: 1 cabezal mirando a su cancha
-    buildTower(x, court1Z - (H / 2 + 2), [aimFor(x, court1Z - (H / 2 + 2), court1Z)]);
-    buildTower(x, court2Z + (H / 2 + 2), [aimFor(x, court2Z + (H / 2 + 2), court2Z)]);
-    // torre central UNIFICADA: doble cabezal, cono angosto y atenuado (evita doble luz en el medio)
-    buildTower(x, zc, [aimFor(x, zc, court1Z), aimFor(x, zc, court2Z)], { factor: 0.55, angle: Math.PI / 4.5 });
+    buildTower(x, zOut1, [aimFor(x, zOut1, court1Z)]);
+    buildTower(x, zOut2, [aimFor(x, zOut2, court2Z)]);
+
+    if (edgeXs.includes(x)) {
+      // ⭐ en estas columnas la torre central NO puede ser una sola (quedaba pegada al borde/portón)
+      // — se divide en 2 postes de un solo cabezal, uno por cancha, flanqueando el pasillo en vez
+      // de compartir un único poste doble en el medio (2026-07-13).
+      const zSplit1 = court1Z + (H / 2 + 2), zSplit2 = court2Z - (H / 2 + 2);
+      buildTower(x, zSplit1, [aimFor(x, zSplit1, court1Z)]);
+      buildTower(x, zSplit2, [aimFor(x, zSplit2, court2Z)]);
+    } else {
+      // torre central UNIFICADA: doble cabezal, cono angosto y atenuado (evita doble luz en el medio)
+      buildTower(x, zc, [aimFor(x, zc, court1Z), aimFor(x, zc, court2Z)], { factor: 0.55, angle: Math.PI / 4.5 });
+    }
   });
 }

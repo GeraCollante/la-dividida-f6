@@ -21,7 +21,8 @@ function signTex() {
 
 function makeContainer() {
   const cg = new THREE.Group();
-  const L = 10, D = 2.5, Ht = 2.6;
+  // contenedor marítimo real de 20 pies (ISO): 6,06 × 2,44 × 2,59 m
+  const L = 6.06, D = 2.44, Ht = 2.59;
 
   // cuerpo: chapa acanalada tipo contenedor (rojo óxido)
   const cArm = loadTex('corrugated_iron_02_arm_1k.jpg', false, 8, 2);
@@ -49,38 +50,41 @@ function makeContainer() {
     });
   });
 
-  // ventana de atención al FRENTE (punta +X), no a los costados
-  const fx = L / 2;
-  const opening = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.25, 1.9),
+  // ventana de atención en el lado LARGO (cara +Z) — con el contenedor "de costadito"
+  // (rotado 90°) esta cara queda mirando al pasillo/mesas, no a las canchas
+  const fz = D / 2;
+  const opening = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.25, 0.14),
     new THREE.MeshStandardMaterial({ color: 0x0e1116, roughness: 0.5, metalness: 0.3 }));
-  opening.position.set(fx + 0.02, 1.5, 0); cg.add(opening);
+  opening.position.set(0, 1.5, fz + 0.02); cg.add(opening);
   // mostrador que sale hacia adelante
-  const counter = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 2.2),
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.7),
     new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 0.5, metalness: 0.2 }));
-  counter.position.set(fx + 0.33, 0.98, 0); counter.castShadow = true; cg.add(counter);
-  [-0.95, 0.95].forEach(cz => {
+  counter.position.set(0, 0.98, fz + 0.33); counter.castShadow = true; cg.add(counter);
+  [-0.95, 0.95].forEach(cx => {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.98, 0.1), frameMat);
-    leg.position.set(fx + 0.58, 0.49, cz); cg.add(leg);
+    leg.position.set(cx, 0.49, fz + 0.58); cg.add(leg);
   });
   // toldo a rayas hacia adelante
-  const awn = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.06, 2.4),
+  const awn = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 1.4),
     new THREE.MeshStandardMaterial({ map: stripeTex(), roughness: 0.8 }));
-  awn.position.set(fx + 0.6, 2.3, 0); awn.rotation.z = -0.3; awn.castShadow = true; cg.add(awn);
+  awn.position.set(0, 2.3, fz + 0.6); awn.rotation.x = 0.3; awn.castShadow = true; cg.add(awn);
 
-  // cartel CANTINA sobre un lateral (visible; no es la salida)
+  // cartel CANTINA arriba de la ventana, misma cara
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 0.95),
     new THREE.MeshStandardMaterial({ map: signTex(), roughness: 0.6 }));
-  sign.position.set(0, 2.15, D / 2 + 0.02);
-  sign.rotation.y = 0; cg.add(sign);
+  sign.position.set(0, 2.15, fz + 0.02);
+  cg.add(sign);
 
   return cg;
 }
 
 export function buildCantina() {
   const cantina = makeContainer();
+  // de costadito: rotado 90° para que el lado LARGO (6 m) quede de frente al pasillo/mesas,
+  // no la punta corta
+  cantina.rotation.y = Math.PI / 2;
   // al fondo del pasillo entre las canchas (el centro queda libre para mesas y sillas)
   cantina.position.set(-(W / 2 - 6), 0, COURT_OFFSET / 2);
-  // la ventana de atención (+X) mira hacia el centro/zona de mesas
   scene.add(cantina);
   return cantina;
 }

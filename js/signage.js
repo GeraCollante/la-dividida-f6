@@ -1,51 +1,6 @@
 import * as THREE from 'three';
-import { scene, renderer } from './setup.js';
+import { scene } from './setup.js';
 import { W, H, COURT_OFFSET } from './config.js';
-import { postMat } from './materials.js';
-
-// ---------- cartel del complejo: "LA DIVIDIDA F6" ----------
-function signNameTex() {
-  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256;
-  const x = cv.getContext('2d');
-  x.fillStyle = '#0f2e1f'; x.fillRect(0, 0, 1024, 256);
-  x.fillStyle = '#ffd24a'; x.fillRect(0, 0, 1024, 14); x.fillRect(0, 242, 1024, 14);
-  x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillStyle = '#ffffff'; x.font = 'bold 120px Arial, sans-serif';
-  x.fillText('LA DIVIDIDA', 512, 98);
-  x.fillStyle = '#ffd24a'; x.font = 'bold 66px Arial, sans-serif';
-  x.fillText('— F6 —', 512, 190);
-  const t = new THREE.CanvasTexture(cv);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  return t;
-}
-function makeSign() {
-  const g = new THREE.Group();
-  const sw = 9, sh = 2.2, postH = 5;
-  [-1, 1].forEach(s => {
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, postH + sh, 12), postMat);
-    p.position.set(s * (sw / 2 - 0.4), (postH + sh) / 2, 0); p.castShadow = true; g.add(p);
-  });
-  const board = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.25),
-    new THREE.MeshStandardMaterial({ color: 0x0f2e1f, roughness: 0.6, metalness: 0.1 }));
-  board.position.set(0, postH + sh / 2, 0); board.castShadow = true; g.add(board);
-  const tex = signNameTex();
-  [-1, 1].forEach(s => {
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(sw - 0.2, sh - 0.2),
-      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5 }));
-    face.position.set(0, postH + sh / 2, s * 0.14);
-    if (s < 0) face.rotation.y = Math.PI;
-    g.add(face);
-  });
-  return g;
-}
-
-export function buildComplexSign() {
-  const sign = makeSign();
-  sign.position.set(0, -0.05, -(H / 2 + 4)); // al frente del predio
-  scene.add(sign);
-  return sign;
-}
 
 // ---------- cotas / medidas (tipo plano) ----------
 function makeLabel(text) {
