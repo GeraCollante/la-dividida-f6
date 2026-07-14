@@ -177,21 +177,21 @@ function flash(m){ const s=document.getElementById('status'); if(!s)return; s.te
   clearTimeout(flash._t); flash._t=setTimeout(()=>{s.textContent='';},1400); }
 
 // N–S: eje largo Norte-Sur (anti-encandilamiento). Escurren a Alvear/López (lado corto = 20 m).
-// ⭐ 2026-07-14: corregido para que el default coincida con el layout real que se venía usando
-// (canchas corridas hacia López, ~5 m de gap ahí, ~40 m libres hacia Alvear — reserva Fase 2;
-// gap real entre canchas 12,8 m). Antes este default quedaba centrado (cx:34/66) y no coincidía
-// con lo que ya estaba confirmado en la 3D y en la bitácora.
+// ⭐ 2026-07-14: default ajustado a la captura de referencia — canchas corridas hacia López
+// (~5 m de gap ahí, ~40 m libres hacia Alvear, reserva Fase 2), gap real entre canchas 12 m
+// (no 12,8), y techo del bar más ancho (8,5 m, no 6 — la cantina en sí sigue siendo de 6 m,
+// el techo/canopy vuela más para dar sombra).
 function layoutNS(){ return [
   {id:'A',type:'cancha',name:'Cancha 1',cx:15,cy:23.35,w:40,h:20,rot:1,drain:'left'},
-  {id:'B',type:'cancha',name:'Cancha 2',cx:47.8,cy:23.35,w:40,h:20,rot:1,drain:'right'},
-  {id:'C',type:'cantina',name:'Cantina',cx:31.4,cy:23.35,w:6,h:2.5,rot:0},
-  {id:'T',type:'techo',name:'Techo bar',x0:28.4,y0:15,x1:34.4,y1:25},
+  {id:'B',type:'cancha',name:'Cancha 2',cx:47,cy:23.35,w:40,h:20,rot:1,drain:'right'},
+  {id:'C',type:'cantina',name:'Cantina',cx:31,cy:23.35,w:6,h:2.5,rot:0},
+  {id:'T',type:'techo',name:'Techo bar',x0:26.75,y0:15,x1:35.25,y1:25},
   {id:'F',type:'cerco',name:'Cerco',x0:1,y0:1,x1:99,y1:45.7},
-  // 6 postes 8 m: lado externo O (x4), medio compartido (x31,4), lado externo E (x58,8); a 10 y 30 m
+  // 6 postes 8 m: lado externo O (x4), medio compartido (x31), lado externo E (x58); a 10 y 30 m
   {id:'L1',type:'poste',name:'Poste luz',cx:4,cy:13.35},{id:'L2',type:'poste',name:'Poste luz',cx:4,cy:33.35},
-  {id:'L3',type:'poste',name:'Poste luz (medio)',cx:31.4,cy:13.35},{id:'L4',type:'poste',name:'Poste luz (medio)',cx:31.4,cy:33.35},
-  {id:'L5',type:'poste',name:'Poste luz',cx:58.8,cy:13.35},{id:'L6',type:'poste',name:'Poste luz',cx:58.8,cy:33.35},
-  {id:'CAM',type:'poste',cam:true,fixed:true,name:'Poste cámaras (Beelup)',cx:31.4,cy:23.35},
+  {id:'L3',type:'poste',name:'Poste luz (medio)',cx:31,cy:13.35},{id:'L4',type:'poste',name:'Poste luz (medio)',cx:31,cy:33.35},
+  {id:'L5',type:'poste',name:'Poste luz',cx:58,cy:13.35},{id:'L6',type:'poste',name:'Poste luz',cx:58,cy:33.35},
+  {id:'CAM',type:'poste',cam:true,fixed:true,name:'Poste cámaras (Beelup)',cx:31,cy:23.35},
 ]; }
 // E–O: eje largo Este-Oeste (a lo ancho). Escurren a 25 de Septiembre (lado corto = 20 m, al sur).
 function layoutEO(){ return [
