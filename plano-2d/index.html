@@ -1,0 +1,1004 @@
+<title>La Dividida — Plano 2D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  :root{
+    --bg:#f4f5f2; --panel:#ffffff; --ink:#1e2a22; --muted:#6b7a70;
+    --line:#d7ddd6; --grass:#e7f0e3; --grass-line:#cfe0c6; --outside:#eceee9;
+    --court:#3fa34d; --court-ink:#1f5f2a; --cantina:#d08a34; --cerco:#5a6b5f;
+    --measure:#2b6cb0; --drain:#1f7ac2; --warn:#c0392b; --accent:#2b7a4b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#161a17; --panel:#1f2521; --ink:#e6ede7; --muted:#9fb0a4;
+      --line:#333c35; --grass:#20302343; --grass:#22322618; --outside:#1b201c; --grass-line:#2c3f30; }
+  }
+  :root[data-theme="dark"]{ --bg:#161a17; --panel:#1f2521; --ink:#e6ede7; --muted:#9fb0a4;
+    --line:#333c35; --grass:#223226; --outside:#1b201c; --grass-line:#2c3f30; }
+  :root[data-theme="light"]{ --bg:#f4f5f2; --panel:#fff; --ink:#1e2a22; --muted:#6b7a70;
+    --line:#d7ddd6; --grass:#e7f0e3; --outside:#eceee9; --grass-line:#cfe0c6; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  header{padding:14px 16px 8px}
+  h1{font-size:18px;margin:0 0 2px;font-weight:700}
+  header p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.35}
+  .wrap{max-width:900px;margin:0 auto;padding:0 12px 40px}
+  .bar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);
+    color:var(--ink);padding:7px 11px;border-radius:9px;cursor:pointer;line-height:1;
+    -webkit-tap-highlight-color:transparent}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:default}
+  button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.ctx{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .sep{flex:1 1 auto}
+  #stage{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;display:flex;justify-content:center;padding:6px}
+  canvas{touch-action:none;display:block;border-radius:6px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-top:12px;font-size:13px;line-height:1.5}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    margin:0 0 6px;font-weight:700}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px}
+  .kv b{font-weight:600}
+  .warn{color:var(--warn);font-weight:600;margin-top:6px}
+  .ok{color:var(--accent)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;
+    vertical-align:-1px}
+  .hint{color:var(--muted);font-size:12px;margin-top:8px}
+  canvas{max-width:100%}
+  .cfgwrap{display:flex;flex-wrap:wrap;gap:8px}
+  .cfg{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
+    border-radius:9px;padding:5px 6px 5px 11px}
+  .cfg .nm{font-size:13px;cursor:pointer;max-width:230px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .cfg .nm:hover{color:var(--accent)}
+  .cfg .nm.preset{color:var(--accent);font-weight:600}
+  .cfg .del{padding:0 6px;font-size:16px;border:0;background:none;color:var(--muted);
+    line-height:1;cursor:pointer}
+  .cfg .del:hover{color:var(--warn)}
+  .saverow{display:flex;gap:6px;margin-bottom:10px;max-width:440px}
+  .saverow input{flex:1;min-width:0;font:inherit;font-size:13px;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+  .empty{font-size:12px;color:var(--muted)}
+</style>
+
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <h1>La Dividida F6 — Plano 2D del predio</h1>
+    <p>Arrastrá las canchas, la cantina y el cerco para probar el layout en el terreno real
+       de Luis (46,7 × 100 m). Tocá un objeto para seleccionarlo y usá los botones para rotarlo
+       o cambiar hacia dónde escurre el agua.</p>
+    <p style="margin-top:6px"><a href="../" style="color:var(--accent)">← Inicio</a> ·
+       <a href="../render/" style="color:var(--accent)">Ver en 3D →</a></p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="bar">
+    <button id="btnRot" class="ctx" disabled title="Gira la cancha/cantina 90° (o doble-click)">Rotar 90°</button>
+    <button id="btnDrain" class="ctx" disabled title="Cambia hacia qué lado escurre el agua de la cancha">Girar escurrimiento</button>
+    <button id="btnDup" class="ctx" disabled title="Duplica el objeto seleccionado (Ctrl+D / Ctrl+C, Ctrl+V)">Duplicar</button>
+    <button id="btnDel" class="ctx" disabled title="Borra el objeto seleccionado (tecla Supr)">Borrar</button>
+    <button id="btnMuro" title="Agrega una pared común (movible, redimensionable, con alto)">➕ Pared</button>
+    <button id="btnMural" title="Agrega una pared tipo mural (color distinto)">➕ Mural</button>
+    <button id="btnCentrar" title="Centra el complejo (canchas, cantina, techo, cámara) simétrico respecto a la pared mural">⇔ Centrar en mural</button>
+    <button id="btnReja6" title="Reja de 6 m (jaula de canchas). Solo H/V. Clic por punto · Enter o doble clic = termina el tramo y seguís · Esc sale">✏️ Reja 6m</button>
+    <button id="btnReja2" title="Reja de 2 m (perímetro anti-robo). Solo H/V. Clic por punto · Enter o doble clic = termina el tramo y seguís · Esc sale">✏️ Reja 2m</button>
+    <span id="muroHwrap" style="display:none;font-size:13px;color:var(--muted);align-self:center">desde <input id="muroX" type="number" min="0" max="100" step="0.01" style="width:60px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"> m · largo <input id="muroL" type="number" min="0.5" max="100" step="0.01" style="width:64px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"> m · alto <input id="muroH" type="number" min="0.2" max="8" step="0.1" style="width:54px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"> m <span id="muroLock" style="display:none;color:#8a5cd1;font-weight:600">🔒 fija (galpón)</span></span>
+    <span id="rejaHwrap" style="display:none;font-size:13px;color:var(--muted);align-self:center">alto reja <input id="rejaH" type="number" min="0.5" max="8" step="0.5" style="width:54px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"> m</span>
+    <span class="sep"></span>
+    <button id="btnUndo" disabled title="Deshacer (Ctrl+Z)">↶ Deshacer</button>
+    <button id="btnRedo" disabled title="Rehacer (Ctrl+Y)">↷ Rehacer</button>
+    <button id="btnGrid" class="on" title="Muestra/oculta la cuadrícula en metros">Grilla</button>
+    <button id="btnSnap" class="on" title="Imanta a la grilla: al soltar, la cancha se alinea a los medios metros más cercanos">Imantar</button>
+    <button id="btnMeas" class="on" title="Muestra/oculta las medidas y distancias">Medidas</button>
+    <button id="btnSol" class="on" title="Rayos del sol de las 18 h (invierno, entra rasante desde el WNW)">☀ Sol 18h</button>
+    <button id="btnReset" title="Vuelve al layout inicial">Reiniciar</button>
+    <span style="font-size:13px;color:var(--muted);align-self:center">postes reja c/ <input id="postSpace" type="number" value="3" min="1.5" max="6" step="0.5" style="width:52px;font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"> m</span>
+  </div>
+  <div id="status" style="font-size:12px;color:var(--muted);min-height:16px;margin:-4px 0 4px"></div>
+
+  <div id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="legend">
+    <span><i style="background:var(--court)"></i>Cancha 40×20</span>
+    <span><i style="background:var(--cantina)"></i>Cantina (contenedor)</span>
+    <span><i style="background:rgba(70,90,130,.45)"></i>Techo bar</span>
+    <span><i style="background:#ffe36b;border-radius:50%"></i>Poste de luz (8 m)</span>
+    <span><i style="background:#7fe3f0;border-radius:50%"></i>Poste cámaras (Beelup)</span>
+    <span><i style="background:#555b63"></i>Pared común</span>
+    <span><i style="background:#8a5cd1"></i>Pared mural</span>
+    <span><i style="background:#d94f3d"></i>Reja 6 m (jaula)</span>
+    <span><i style="background:#2b8fd6"></i>Reja 2 m (perímetro)</span>
+    <span><i style="background:transparent;border:2px dashed var(--cerco)"></i>Cerco</span>
+    <span><i style="background:var(--drain)"></i>Escurrimiento</span>
+  </div>
+
+  <div class="panel">
+    <h2>Configuraciones</h2>
+    <div class="saverow">
+      <input id="cfgName" placeholder="Nombre del layout…" maxlength="40">
+      <button id="btnSave" title="Guarda el layout actual">Guardar</button>
+    </div>
+    <div id="cfgList" class="cfgwrap"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Orientación · sol · viento</h2>
+    <div style="font-size:13px;line-height:1.55">
+      <b>Norte</b> hacia arriba (lado parcelas 34/35). La manzana está girada ~20° del norte real.<br>
+      <b>☀ Sol (hemisferio sur):</b> al mediodía pasa por el <b>Norte</b>. Sale por el <b>Este</b>
+      (derecha) y se pone por el <b>Oeste</b> (izquierda, lado Alvear). El lado <b>Sur</b>
+      (25 de Septiembre) es el más sombreado.<br>
+      <b>Datos reales (simulador de sombras, 10-jul / invierno):</b> a la mañana sol en
+      <b>ENE ~60°</b> y a la tarde en <b>WNW ~300°</b>, y bajísimo (~5° temprano/tarde,
+      ~35° al mediodía). En <b>verano</b> sale/se pone más al Sur y mucho más alto (~82°), así que
+      el sol rasante de invierno es el caso más molesto para el encandilamiento.<br>
+      <b>💨 Viento:</b> en la zona predomina del <b>N y NE</b> (el "viento norte" cálido); los
+      frentes fríos entran del <b>S/SO</b> (Pampero).<br>
+      <b>⚠️ Encandilamiento:</b> por eso el layout por defecto es <b>N–S</b> (eje largo
+      Norte–Sur): el sol de la tarde cruza <b>de costado</b> y no encandila al arquero. Si las
+      ponés <b>E–O</b> (a lo ancho), el sol de la tarde le pega <b>de frente</b> al arco del lado
+      <b>Oeste (Alvear)</b> — molesto en los partidos de tarde/noche. Podés comparar las dos con
+      los presets del panel <b>Configuraciones</b>.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Datos en vivo</h2>
+    <div id="readout" class="kv"></div>
+    <div id="alerts"></div>
+    <div class="hint">Tip: en el celular usás el dedo igual que el mouse. El cerco se agranda
+      arrastrando sus esquinas.<br>
+      Atajos: <b>Ctrl+Z</b> deshacer · <b>Ctrl+Y</b> rehacer · <b>Ctrl+C/V</b> copiar/pegar ·
+      <b>Ctrl+D</b> duplicar · <b>Supr</b> borrar · <b>flechas</b> mover fino · <b>Esc</b> deseleccionar.</div>
+  </div>
+</div>
+
+<script>
+const LOT={w:100,h:46.7};
+const MARGIN=38;
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let pxm=6, dpr=1;
+const opt={grid:true,snap:true,meas:true,sol18:true};
+let sel=null, drag=null;
+let history=[], future=[], clip=null, idc=1;
+let drawingReja=false, rejaPts=[], rejaCursor=null, rejaLastClick=0, rejaC=1, postSpacing=3, rejaKind=6;
+const clone=x=>JSON.parse(JSON.stringify(x));
+function pushHistory(){ history.push(clone(objs)); if(history.length>120) history.shift(); future=[]; refreshHist(); }
+function restoreState(arr){ const id=sel&&sel.id; objs=arr; sel=id?byId(id)||null:null; ctxButtons(); refreshHist(); draw(); }
+function undo(){ if(!history.length)return; future.push(clone(objs)); restoreState(history.pop()); flash('Deshecho'); }
+function redo(){ if(!future.length)return; history.push(clone(objs)); restoreState(future.pop()); flash('Rehecho'); }
+function refreshHist(){ const u=document.getElementById('btnUndo'),r=document.getElementById('btnRedo');
+  if(u)u.disabled=!history.length; if(r)r.disabled=!future.length; }
+function flash(m){ const s=document.getElementById('status'); if(!s)return; s.textContent=m;
+  clearTimeout(flash._t); flash._t=setTimeout(()=>{s.textContent='';},1400); }
+
+// N–S: eje largo Norte-Sur (anti-encandilamiento). Escurren a Alvear/López (lado corto = 20 m).
+function layoutNS(){ return [
+  {id:'A',type:'cancha',name:'Cancha 1',cx:34,cy:23.35,w:40,h:20,rot:1,drain:'left'},
+  {id:'B',type:'cancha',name:'Cancha 2',cx:66,cy:23.35,w:40,h:20,rot:1,drain:'right'},
+  {id:'C',type:'cantina',name:'Cantina',cx:50,cy:23.35,w:6,h:2.5,rot:0},
+  {id:'T',type:'techo',name:'Techo bar',x0:47,y0:15,x1:53,y1:25},
+  {id:'F',type:'cerco',name:'Cerco',x0:1,y0:1,x1:99,y1:45.7},
+  // 6 postes 8 m: lado externo O (x23), medio compartido (x50), lado externo E (x77); a 10 y 30 m
+  {id:'L1',type:'poste',name:'Poste luz',cx:23,cy:13.35},{id:'L2',type:'poste',name:'Poste luz',cx:23,cy:33.35},
+  {id:'L3',type:'poste',name:'Poste luz (medio)',cx:50,cy:13.35},{id:'L4',type:'poste',name:'Poste luz (medio)',cx:50,cy:33.35},
+  {id:'L5',type:'poste',name:'Poste luz',cx:77,cy:13.35},{id:'L6',type:'poste',name:'Poste luz',cx:77,cy:33.35},
+  {id:'CAM',type:'poste',cam:true,fixed:true,name:'Poste cámaras (Beelup)',cx:50,cy:23.35},
+]; }
+// E–O: eje largo Este-Oeste (a lo ancho). Escurren a 25 de Septiembre (lado corto = 20 m, al sur).
+function layoutEO(){ return [
+  {id:'A',type:'cancha',name:'Cancha 1',cx:24,cy:23.35,w:40,h:20,rot:0,drain:'down'},
+  {id:'B',type:'cancha',name:'Cancha 2',cx:76,cy:23.35,w:40,h:20,rot:0,drain:'down'},
+  {id:'C',type:'cantina',name:'Cantina',cx:50,cy:23.35,w:6,h:2.5,rot:0},
+  {id:'T',type:'techo',name:'Techo bar',x0:47,y0:15,x1:53,y1:25},
+  {id:'F',type:'cerco',name:'Cerco',x0:1,y0:1,x1:99,y1:45.7},
+  // 6 postes 8 m: fila superior (y12), fila inferior (y34.7); columna del medio (x50) compartida
+  {id:'L1',type:'poste',name:'Poste luz',cx:14,cy:12},{id:'L2',type:'poste',name:'Poste luz (medio)',cx:50,cy:12},
+  {id:'L3',type:'poste',name:'Poste luz',cx:86,cy:12},{id:'L4',type:'poste',name:'Poste luz',cx:14,cy:34.7},
+  {id:'L5',type:'poste',name:'Poste luz (medio)',cx:50,cy:34.7},{id:'L6',type:'poste',name:'Poste luz',cx:86,cy:34.7},
+  {id:'CAM',type:'poste',cam:true,fixed:true,name:'Poste cámaras (Beelup)',cx:50,cy:23.35},
+]; }
+function defaults(){ return layoutNS(); }
+let objs=defaults();
+const byId=id=>objs.find(o=>o.id===id);
+const isBox=o=>!!o&&(o.type==='cerco'||o.type==='techo'||o.type==='muro'); // objetos por esquinas (redimensionables)
+const canRotate=o=>!!o&&(o.type==='cancha'||o.type==='cantina');
+
+// ---- geometry helpers ----
+function foot(o){
+  if(isBox(o)) return {l:Math.min(o.x0,o.x1),r:Math.max(o.x0,o.x1),
+    t:Math.min(o.y0,o.y1),b:Math.max(o.y0,o.y1)};
+  if(o.type==='poste'){ const s=2.4; return {l:o.cx-s/2,r:o.cx+s/2,t:o.cy-s/2,b:o.cy+s/2,ew:s,eh:s}; }
+  const ew=o.rot?o.h:o.w, eh=o.rot?o.w:o.h;
+  return {l:o.cx-ew/2,r:o.cx+ew/2,t:o.cy-eh/2,b:o.cy+eh/2,ew,eh};
+}
+const X=m=>MARGIN+m*pxm, Y=m=>MARGIN+m*pxm;
+const mX=px=>(px-MARGIN)/pxm, mY=px=>(px-MARGIN)/pxm;
+function snap(v){ return opt.snap? Math.round(v*2)/2 : v; }
+function intervalGap(a0,a1,b0,b1){
+  if(a1<b0) return b0-a1;
+  if(b1<a0) return a0-b1;
+  return -Math.min(a1,b1)+Math.max(a0,b0); // negative => overlap amount (<=0)
+}
+
+// ---- sizing ----
+function resize(){
+  const stage=document.getElementById('stage');
+  const availW=stage.clientWidth-12;
+  const maxH=Math.min(window.innerHeight*0.70,760);
+  pxm=Math.min((availW-2*MARGIN)/LOT.w,(maxH-2*MARGIN)/LOT.h);
+  pxm=Math.max(3,pxm);
+  const cssW=LOT.w*pxm+2*MARGIN, cssH=LOT.h*pxm+2*MARGIN;
+  dpr=window.devicePixelRatio||1;
+  cv.style.width=cssW+'px'; cv.style.height=cssH+'px';
+  cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+  draw();
+}
+
+// ---- drawing ----
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=cv.width/dpr, H=cv.height/dpr;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=css('--outside'); ctx.fillRect(0,0,W,H);
+
+  // lot
+  const L=X(0),T=Y(0),R=X(LOT.w),B=Y(LOT.h);
+  ctx.fillStyle=css('--grass'); ctx.fillRect(L,T,R-L,B-T);
+
+  if(opt.grid) drawGrid(L,T,R,B);
+  drawRulers(L,T,R,B);
+
+  // lot border
+  ctx.strokeStyle=css('--court-ink'); ctx.lineWidth=2;
+  ctx.strokeRect(L,T,R-L,B-T);
+
+  // street / lindero labels
+  ctx.fillStyle=css('--muted'); ctx.font='11px system-ui'; ctx.textAlign='center';
+  ctx.textBaseline='alphabetic';
+  ctx.fillText('lindero — parcelas 34 y 35 (vecino) · 100 m',(L+R)/2,T-14);
+  ctx.textBaseline='top';
+  ctx.fillText('◄ Av. 25 de Septiembre (calle) · 100 m ►',(L+R)/2,B+6);
+  ctx.save();
+  ctx.translate(L-22,(T+B)/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='alphabetic';
+  ctx.fillText('◄ Calle Alvear (46,6 m) ►',0,0); ctx.restore();
+  ctx.save();
+  ctx.translate(R+10,(T+B)/2); ctx.rotate(Math.PI/2); ctx.textBaseline='alphabetic';
+  ctx.fillText('◄ Calle López (46,9 m) ►',0,0); ctx.restore();
+
+  drawMuralAxis();
+  const cerco=byId('F');
+  if(cerco) drawCerco(cerco);
+  objs.filter(o=>o.type==='muro').forEach(drawMuro);
+  objs.filter(o=>o.type==='cantina').forEach(drawBox);
+  objs.filter(o=>o.type==='cancha').forEach(drawCancha);
+
+  if(opt.sol18) drawSun18();
+  objs.filter(o=>o.type==='techo').forEach(drawTecho);
+  objs.filter(o=>o.type==='reja').forEach(drawReja);
+  if(drawingReja) drawRejaInProgress();
+  objs.filter(o=>o.type==='poste').forEach(drawPoste);
+  if(opt.meas) drawCourtGap();
+  if(opt.meas && canRotate(sel)) drawMeasures(sel);
+  drawOrientation();
+  updateReadout();
+}
+
+function drawSun18(){
+  const L=X(0),T=Y(0),R=X(LOT.w),B=Y(LOT.h);
+  const ang=300*Math.PI/180;                 // sol 18 h invierno: azimut WNW ~300°
+  const tx=Math.sin(ang+Math.PI), ty=-Math.cos(ang+Math.PI); // dirección en que viaja la luz (hacia ESE)
+  const px=-ty, py=tx, cxp=(L+R)/2, cyp=(T+B)/2, diag=Math.hypot(R-L,B-T);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(L,T,R-L,B-T); ctx.clip();
+  ctx.strokeStyle='rgba(232,150,24,0.5)'; ctx.lineWidth=1.3; ctx.setLineDash([7,6]);
+  for(let s=-diag; s<=diag; s+=38){
+    const ox=cxp+px*s, oy=cyp+py*s;
+    ctx.beginPath(); ctx.moveTo(ox-tx*diag,oy-ty*diag); ctx.lineTo(ox+tx*diag,oy+ty*diag); ctx.stroke();
+  }
+  ctx.restore(); ctx.setLineDash([]);
+  // sol + flecha + rótulo en el borde WNW (de dónde viene)
+  const sxu=Math.sin(ang), syu=-Math.cos(ang);
+  let gx=cxp+sxu*(R-L)/2*0.82, gy=cyp+syu*(B-T)/2*0.82;
+  gx=Math.max(L+18,Math.min(R-18,gx)); gy=Math.max(T+18,Math.min(B-30,gy));
+  ctx.strokeStyle='#d9821a'; ctx.fillStyle='#d9821a'; ctx.lineWidth=2.4;
+  const ax=gx+tx*30, ay=gy+ty*30, aa=Math.atan2(ty,tx), hs=7;
+  ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(ax,ay); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax,ay);
+  ctx.lineTo(ax-hs*Math.cos(aa-0.4),ay-hs*Math.sin(aa-0.4));
+  ctx.lineTo(ax-hs*Math.cos(aa+0.4),ay-hs*Math.sin(aa+0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.font='14px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('☀', gx, gy);
+  ctx.font='bold 9px system-ui';
+  const txt='sol 18 h · WNW';
+  const tw=ctx.measureText(txt).width;
+  ctx.fillStyle='#d9821a'; roundRect(gx-tw/2-4, gy+11, tw+8, 15, 4); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.fillText(txt, gx, gy+18.5);
+}
+function drawOrientation(){
+  const W=cv.width/dpr;
+  const bw=120, bh=104, bx=W-bw-6, by=Y(0)+4;
+  ctx.save();
+  ctx.globalAlpha=0.94;
+  ctx.fillStyle=css('--panel'); ctx.strokeStyle=css('--line'); ctx.lineWidth=1;
+  roundRect(bx,by,bw,bh,8); ctx.fill(); ctx.stroke();
+  ctx.globalAlpha=1;
+  ctx.fillStyle=css('--muted'); ctx.font='9px system-ui'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('ORIENTACIÓN', bx+8, by+6);
+  const cc={x:bx+30, y:by+58}, r=18;
+  // real winter sun path: rises ENE (~60°), sets WNW (~300°), low over the North
+  const az=(a,rad)=>({x:cc.x+rad*Math.sin(a*Math.PI/180), y:cc.y-rad*Math.cos(a*Math.PI/180)});
+  const sr=az(60,r+9), ss=az(300,r+9);
+  ctx.strokeStyle='#e0a021'; ctx.lineWidth=1.4; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(sr.x,sr.y); ctx.quadraticCurveTo(cc.x, cc.y-(r+24), ss.x, ss.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='10px system-ui';
+  ctx.fillText('☀', sr.x, sr.y); ctx.fillText('☀', ss.x, ss.y);
+  // compass circle
+  ctx.strokeStyle=css('--muted'); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(cc.x,cc.y,r,0,7); ctx.stroke();
+  // N pointer (red) / S pointer (gray)
+  ctx.fillStyle='#c0392b';
+  ctx.beginPath(); ctx.moveTo(cc.x,cc.y-r+2); ctx.lineTo(cc.x-4,cc.y); ctx.lineTo(cc.x+4,cc.y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=css('--muted');
+  ctx.beginPath(); ctx.moveTo(cc.x,cc.y+r-2); ctx.lineTo(cc.x-4,cc.y); ctx.lineTo(cc.x+4,cc.y); ctx.closePath(); ctx.fill();
+  // letters
+  ctx.fillStyle=css('--ink'); ctx.font='bold 9px system-ui';
+  ctx.fillText('N', cc.x, cc.y-r-7);
+  ctx.fillText('S', cc.x, cc.y+r+7);
+  ctx.fillText('E', cc.x+r+7, cc.y);
+  ctx.fillText('O', cc.x-r-7, cc.y);
+  // sun/wind mini text
+  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='9px system-ui';
+  ctx.fillStyle='#c88a1e'; ctx.fillText('☀ mediodía', bx+58, by+40); ctx.fillText('   al Norte', bx+58, by+51);
+  ctx.fillStyle=css('--drain'); ctx.fillText('💨 viento', bx+58, by+72); ctx.fillText('   N–NE', bx+58, by+83);
+  ctx.restore();
+}
+
+function drawGrid(L,T,R,B){
+  ctx.strokeStyle=css('--grass-line'); ctx.lineWidth=1;
+  for(let m=5;m<LOT.w;m+=5){ ctx.beginPath();ctx.moveTo(X(m),T);ctx.lineTo(X(m),B);ctx.stroke(); }
+  for(let m=5;m<LOT.h;m+=5){ ctx.beginPath();ctx.moveTo(L,Y(m));ctx.lineTo(R,Y(m));ctx.stroke(); }
+}
+function drawRulers(L,T,R,B){
+  ctx.fillStyle=css('--muted'); ctx.font='9px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  for(let m=0;m<=Math.floor(LOT.w);m+=10){ ctx.fillText(m,X(m),T-1); }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let m=0;m<=Math.floor(LOT.h);m+=10){ ctx.fillText(m,L-3,Y(m)); }
+}
+
+function roundRect(x,y,w,h,r){
+  r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+function drawCancha(o){
+  const f=foot(o);
+  const x=X(f.l),y=Y(f.t),w=(f.r-f.l)*pxm,h=(f.b-f.t)*pxm;
+  const bad = overlapWith(o) || outOfLot(f);
+  ctx.fillStyle=css('--court'); ctx.globalAlpha=0.9;
+  roundRect(x,y,w,h,4); ctx.fill(); ctx.globalAlpha=1;
+  // pitch markings
+  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.4;
+  roundRect(x+3,y+3,w-6,h-6,3); ctx.stroke();
+  ctx.beginPath();
+  if(f.ew>=f.eh){ ctx.moveTo(x+w/2,y+3);ctx.lineTo(x+w/2,y+h-3); }
+  else { ctx.moveTo(x+3,y+h/2);ctx.lineTo(x+w-3,y+h/2); }
+  ctx.stroke();
+  ctx.beginPath();ctx.arc(x+w/2,y+h/2,Math.min(w,h)*0.14,0,7);ctx.stroke();
+  // border (selection / warning)
+  ctx.strokeStyle= bad?css('--warn') : (sel===o?css('--accent'):css('--court-ink'));
+  ctx.lineWidth= sel===o?3:(bad?2.5:1.6);
+  roundRect(x,y,w,h,4); ctx.stroke();
+  // label
+  ctx.fillStyle='#fff'; ctx.font='bold 11px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(o.name,x+w/2,y+h/2-7);
+  ctx.font='10px system-ui';
+  ctx.fillText(fmt(f.ew)+' × '+fmt(f.eh)+' m',x+w/2,y+h/2+7);
+  drawDrain(o,f);
+}
+
+function drawDrain(o,f){
+  const cx=X(o.cx),cy=Y(o.cy);
+  const dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  const [dx,dy]=dirs[o.drain]||dirs.up;
+  const len=Math.min((f.r-f.l),(f.b-f.t))*pxm*0.38+6;
+  const ex=cx+dx*len, ey=cy+dy*len;
+  ctx.strokeStyle=css('--drain'); ctx.fillStyle=css('--drain'); ctx.lineWidth=2.4;
+  ctx.beginPath();ctx.moveTo(cx-dx*len*0.15,cy-dy*len*0.15);ctx.lineTo(ex,ey);ctx.stroke();
+  const a=Math.atan2(dy,dx),hs=6;
+  ctx.beginPath();
+  ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-hs*Math.cos(a-0.4),ey-hs*Math.sin(a-0.4));
+  ctx.lineTo(ex-hs*Math.cos(a+0.4),ey-hs*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();
+}
+
+function drawBox(o){ // cantina
+  const f=foot(o);
+  const x=X(f.l),y=Y(f.t),w=(f.r-f.l)*pxm,h=(f.b-f.t)*pxm;
+  ctx.fillStyle=css('--cantina'); roundRect(x,y,w,h,3); ctx.fill();
+  ctx.strokeStyle= sel===o?css('--accent'):'#8a5a1e'; ctx.lineWidth=sel===o?3:1.4;
+  roundRect(x,y,w,h,3); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='bold 9px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(w>34) ctx.fillText('Cantina',x+w/2,y+h/2);
+}
+
+function drawMuralAxis(){
+  const mur=objs.find(o=>o.type==='muro'&&o.kind==='mural'); if(!mur) return;
+  const f=foot(mur); const cm=(f.l+f.r)/2; const xp=X(cm);
+  ctx.save();
+  ctx.strokeStyle='rgba(138,92,209,0.65)'; ctx.lineWidth=1.3; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(xp,Y(0)); ctx.lineTo(xp,Y(LOT.h)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#8a5cd1'; ctx.font='bold 9px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('eje mural', xp, Y(LOT.h)-3);
+  ctx.restore();
+}
+function centrarEnMural(){
+  const mur=objs.find(o=>o.type==='muro'&&o.kind==='mural');
+  if(!mur){ flash('No hay pared mural para centrar'); return; }
+  pushHistory();
+  const f=foot(mur), cm=(f.l+f.r)/2;
+  const A=byId('A'),B=byId('B');
+  const center=(A&&B)?(A.cx+B.cx)/2:LOT.w/2;
+  const dx=cm-center;
+  objs.forEach(o=>{
+    if(o.type==='muro'||o.type==='cerco') return;
+    if(o.type==='techo'){ o.x0+=dx; o.x1+=dx; }
+    else if(o.cx!=null){ o.cx+=dx; }
+  });
+  if(A&&B){ const s=Math.abs(B.cx-A.cx)/2; A.cx=cm-s; B.cx=cm+s; }
+  objs.forEach(o=>{
+    if(o.type==='cantina'||(o.type==='poste'&&o.cam)) o.cx=cm;
+    if(o.type==='techo'){ const w=Math.abs(o.x1-o.x0); o.x0=cm-w/2; o.x1=cm+w/2; }
+  });
+  sel=null; ctxButtons(); draw(); flash('Complejo centrado y simétrico respecto al mural ✓');
+}
+document.getElementById('btnCentrar').onclick=centrarEnMural;
+function drawMuro(o){
+  const f=foot(o);
+  const x=X(f.l),y=Y(f.t),w=Math.max((f.r-f.l)*pxm,2),h=Math.max((f.b-f.t)*pxm,3);
+  const col=o.kind==='mural'?'#8a5cd1':'#555b63';
+  ctx.fillStyle=col; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle= sel===o?css('--accent'):(o.kind==='mural'?'#5f3a91':'#3a3f45'); ctx.lineWidth= sel===o?2:1;
+  ctx.strokeRect(x,y,w,h);
+  drawMuroMid(f); // cuñita en la mitad
+  const hs=7; ctx.fillStyle= sel===o?css('--accent'):col;
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>ctx.fillRect(hx-hs/2,hy-hs/2,hs,hs));
+  if(sel===o){ const L=Math.max(f.r-f.l,f.b-f.t);
+    ctx.fillStyle=css('--ink'); ctx.font='bold 9px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText((o.kind==='mural'?'Mural ':'')+fmt(L)+' m · alto '+fmt(o.h||1.8)+' m', x+w/2, y-3); }
+}
+function drawMuroMid(f){
+  const cxm=(f.l+f.r)/2, cym=(f.t+f.b)/2, mx=X(cxm), my=Y(cym);
+  const horiz=(f.r-f.l)>=(f.b-f.t);
+  const Lp=1.8*pxm, Wd=1.0*pxm;
+  const diry = cym<LOT.h/2?1:-1, dirx = cxm<LOT.w/2?1:-1;
+  ctx.save();
+  ctx.fillStyle='#fff'; ctx.strokeStyle='#333'; ctx.lineWidth=1;
+  ctx.beginPath();
+  if(horiz){ ctx.moveTo(mx-Wd,my); ctx.lineTo(mx+Wd,my); ctx.lineTo(mx,my+diry*Lp); }
+  else { ctx.moveTo(mx,my-Wd); ctx.lineTo(mx,my+Wd); ctx.lineTo(mx+dirx*Lp,my); }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+function rejaLen(o){ let s=0; for(let i=0;i<o.pts.length-1;i++){ s+=Math.hypot(o.pts[i+1].x-o.pts[i].x, o.pts[i+1].y-o.pts[i].y); } return s; }
+function distToSeg(px,py,a,b){ const dx=b.x-a.x, dy=b.y-a.y, l2=dx*dx+dy*dy;
+  if(l2===0) return Math.hypot(px-a.x,py-a.y);
+  let t=((px-a.x)*dx+(py-a.y)*dy)/l2; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(a.x+t*dx), py-(a.y+t*dy)); }
+function rejaColor(h){ return (h||6)>=4 ? '#d94f3d' : '#2b8fd6'; }
+function drawReja(o){
+  if(!o.pts||!o.pts.length) return;
+  const col=rejaColor(o.h);
+  ctx.strokeStyle= sel===o?css('--accent'):col; ctx.lineWidth= sel===o?3.2:2.4; ctx.setLineDash([]);
+  ctx.beginPath();
+  o.pts.forEach((p,i)=>{ const x=X(p.x),y=Y(p.y); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke();
+  ctx.fillStyle= sel===o?css('--accent'):col;
+  o.pts.forEach(p=>{ ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),2.4,0,7); ctx.fill(); });
+  if(sel===o){ const mid=o.pts[Math.floor(o.pts.length/2)];
+    ctx.fillStyle=css('--ink'); ctx.font='bold 9px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(fmt(rejaLen(o))+' m ('+fmt(o.h||6)+'m)', X(mid.x), Y(mid.y)-5); }
+}
+function drawRejaInProgress(){
+  if(!rejaPts.length) return;
+  ctx.strokeStyle=rejaColor(rejaKind); ctx.lineWidth=2.4; ctx.setLineDash([]);
+  ctx.beginPath(); rejaPts.forEach((p,i)=>{ const x=X(p.x),y=Y(p.y); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.stroke();
+  if(rejaCursor){ const last=rejaPts[rejaPts.length-1];
+    ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(last.x),Y(last.y)); ctx.lineTo(X(rejaCursor.x),Y(rejaCursor.y)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.fillStyle=rejaColor(rejaKind); rejaPts.forEach(p=>{ ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),3,0,7); ctx.fill(); });
+  const L=rejaLen({pts:rejaCursor?rejaPts.concat([rejaCursor]):rejaPts});
+  const anchor=rejaCursor||rejaPts[rejaPts.length-1];
+  ctx.fillStyle=css('--accent'); ctx.font='bold 10px system-ui'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText(fmt(L)+' m', X(anchor.x)+7, Y(anchor.y)-5);
+}
+function commitReja(){ // termina el tramo actual pero sigue en modo dibujo
+  if(rejaPts.length>=2){ pushHistory(); objs.push({id:'R'+(rejaC++),type:'reja',name:'Reja '+rejaKind+'m',pts:rejaPts.slice(),h:rejaKind}); }
+  rejaPts=[]; rejaCursor=null; draw();
+}
+function exitRejaMode(){ commitReja(); drawingReja=false;
+  document.getElementById('btnReja6').classList.remove('on');
+  document.getElementById('btnReja2').classList.remove('on');
+  ctxButtons(); draw(); }
+function orthoTo(last,mx,my){ if(!last) return {x:mx,y:my};
+  return Math.abs(mx-last.x)>=Math.abs(my-last.y) ? {x:mx,y:last.y} : {x:last.x,y:my}; }
+function startReja(kind){
+  if(drawingReja && rejaKind===kind){ exitRejaMode(); return; } // mismo botón = salir
+  if(drawingReja){ commitReja(); }                              // cambiar de tipo = cerrar el tramo actual
+  drawingReja=true; rejaKind=kind; rejaPts=[]; rejaCursor=null; sel=null; ctxButtons();
+  document.getElementById('btnReja6').classList.toggle('on',kind===6);
+  document.getElementById('btnReja2').classList.toggle('on',kind===2);
+  flash('Reja '+kind+' m (solo H/V): clic por punto · Enter o doble clic = termina el tramo y seguís · Esc sale'); draw();
+}
+document.getElementById('btnReja6').onclick=()=>startReja(6);
+document.getElementById('btnReja2').onclick=()=>startReja(2);
+function drawPoste(o){
+  const cx=X(o.cx), cy=Y(o.cy), r=5;
+  ctx.save();
+  if(o.cam){ // poste de cámaras (Beelup)
+    ctx.fillStyle='rgba(60,190,210,0.30)';
+    ctx.beginPath(); ctx.arc(cx,cy,r+4,0,7); ctx.fill();
+    ctx.fillStyle= sel===o?css('--accent'):'#0e6b7a';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
+    ctx.fillStyle='#7fe3f0';
+    ctx.beginPath(); ctx.arc(cx,cy,r-2,0,7); ctx.fill();
+    ctx.fillStyle='#08343b';
+    ctx.beginPath(); ctx.arc(cx,cy,1.6,0,7); ctx.fill(); // lente
+  } else { // poste de luz
+    ctx.fillStyle='rgba(255,220,90,0.35)';
+    ctx.beginPath(); ctx.arc(cx,cy,r+4,0,7); ctx.fill();
+    ctx.fillStyle= sel===o?css('--accent'):'#333a33';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
+    ctx.fillStyle='#ffe36b';
+    ctx.beginPath(); ctx.arc(cx,cy,r-2,0,7); ctx.fill();
+  }
+  if(sel===o){ ctx.strokeStyle=css('--accent'); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,r+3,0,7); ctx.stroke(); }
+  ctx.restore();
+}
+function drawTecho(o){
+  const f=foot(o);
+  const x=X(f.l),y=Y(f.t),w=(f.r-f.l)*pxm,h=(f.b-f.t)*pxm;
+  ctx.fillStyle='rgba(70,90,130,0.42)';
+  roundRect(x,y,w,h,4); ctx.fill();
+  // líneas de "techo"
+  ctx.save(); ctx.beginPath(); roundRect(x,y,w,h,4); ctx.clip();
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1;
+  for(let i=x-h; i<x+w; i+=9){ ctx.beginPath(); ctx.moveTo(i,y); ctx.lineTo(i+h,y+h); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle= sel===o?css('--accent'):'#46587f'; ctx.lineWidth= sel===o?2.6:1.6;
+  roundRect(x,y,w,h,4); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(w>46&&h>24){ ctx.font='bold 10px system-ui'; ctx.fillText('Techo bar', x+w/2, y+h/2-6);
+    ctx.font='9px system-ui'; ctx.fillText(fmt(f.r-f.l)+' × '+fmt(f.b-f.t)+' m', x+w/2, y+h/2+7); }
+  // manijas para redimensionar
+  const hs=7; ctx.fillStyle= sel===o?css('--accent'):'#46587f';
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>ctx.fillRect(hx-hs/2,hy-hs/2,hs,hs));
+}
+function drawCerco(o){
+  const f=foot(o);
+  const x=X(f.l),y=Y(f.t),w=(f.r-f.l)*pxm,h=(f.b-f.t)*pxm;
+  ctx.strokeStyle= sel===o?css('--accent'):css('--cerco');
+  ctx.lineWidth= sel===o?2.4:1.8; ctx.setLineDash([7,5]);
+  ctx.strokeRect(x,y,w,h); ctx.setLineDash([]);
+  // handles
+  const hs=7;
+  ctx.fillStyle=css('--cerco');
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>{
+    ctx.fillRect(hx-hs/2,hy-hs/2,hs,hs);
+  });
+}
+
+function drawCourtGap(){
+  const A=byId('A'),B=byId('B'); if(!A||!B) return;
+  const fa=foot(A),fb=foot(B);
+  const gx=intervalGap(fa.l,fa.r,fb.l,fb.r);
+  const gy=intervalGap(fa.t,fa.b,fb.t,fb.b);
+  ctx.strokeStyle=css('--accent'); ctx.fillStyle=css('--accent'); ctx.lineWidth=1.6; ctx.setLineDash([]);
+  if(gx>0.05){ // separadas a lo ancho
+    const left=fa.r<=fb.l?fa:fb, right=fa.r<=fb.l?fb:fa;
+    const yov0=Math.max(fa.t,fb.t), yov1=Math.min(fa.b,fb.b);
+    const ym=(yov1>yov0)?yov0+(yov1-yov0)*0.28:(fa.t+fa.b)/2;
+    dimLine(X(left.r),Y(ym),X(right.l),Y(ym),fmt(gx)+' m','h');
+  } else if(gy>0.05){ // una arriba de la otra
+    const top=fa.b<=fb.t?fa:fb, bot=fa.b<=fb.t?fb:fa;
+    const xov0=Math.max(fa.l,fb.l), xov1=Math.min(fa.r,fb.r);
+    const xm=(xov1>xov0)?xov0+(xov1-xov0)*0.28:(fa.l+fa.r)/2;
+    dimLine(X(xm),Y(top.b),X(xm),Y(bot.t),fmt(gy)+' m','v');
+  }
+}
+function dimLine(x1,y1,x2,y2,txt,dir){
+  if(Math.hypot(x2-x1,y2-y1)<10) return;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const cap=4;
+  ctx.beginPath();
+  if(dir==='h'){ctx.moveTo(x1,y1-cap);ctx.lineTo(x1,y1+cap);ctx.moveTo(x2,y2-cap);ctx.lineTo(x2,y2+cap);}
+  else{ctx.moveTo(x1-cap,y1);ctx.lineTo(x1+cap,y1);ctx.moveTo(x2-cap,y2);ctx.lineTo(x2+cap,y2);}
+  ctx.stroke();
+  const cx=(x1+x2)/2,cy=(y1+y2)/2;
+  ctx.save(); ctx.font='bold 11px system-ui';
+  const tw=ctx.measureText(txt).width, pad=4;
+  ctx.fillStyle=css('--accent'); roundRect(cx-tw/2-pad,cy-8,tw+2*pad,17,5); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt,cx,cy+0.5); ctx.restore();
+}
+function drawMeasures(o){
+  const f=foot(o);
+  ctx.strokeStyle=css('--measure'); ctx.fillStyle=css('--measure');
+  ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.font='10px system-ui';
+  const midY=Y((f.t+f.b)/2), midX=X((f.l+f.r)/2);
+  // left
+  measLine(X(0),midY,X(f.l),midY,fmt(f.l),'h');
+  // right
+  measLine(X(f.r),midY,X(LOT.w),midY,fmt(LOT.w-f.r),'h');
+  // top
+  measLine(midX,Y(0),midX,Y(f.t),fmt(f.t),'v');
+  // bottom
+  measLine(midX,Y(f.b),midX,Y(LOT.h),fmt(LOT.h-f.b),'v');
+  ctx.setLineDash([]);
+}
+function measLine(x1,y1,x2,y2,txt,dir){
+  if(Math.hypot(x2-x1,y2-y1)<12){return;}
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.save();
+  ctx.fillStyle=css('--panel'); const pad=2;
+  ctx.font='10px system-ui';
+  const tw=ctx.measureText(txt+' m').width;
+  const cx=(x1+x2)/2, cy=(y1+y2)/2;
+  ctx.fillRect(cx-tw/2-pad,cy-7,tw+2*pad,13);
+  ctx.fillStyle=css('--measure'); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt+' m',cx,cy+0.5);
+  ctx.restore();
+}
+
+const fmt=v=>{ const r=Math.round(v*10)/10; return (Math.abs(r%1)<0.05)? String(Math.round(r)):r.toFixed(1); };
+
+// ---- warnings ----
+function overlapWith(o){
+  const a=foot(o);
+  return objs.some(x=>x!==o && x.type==='cancha' &&
+    a.l<foot(x).r-0.01 && a.r>foot(x).l+0.01 && a.t<foot(x).b-0.01 && a.b>foot(x).t+0.01);
+}
+function outOfLot(f){ return f.l<-0.01||f.t<-0.01||f.r>LOT.w+0.01||f.b>LOT.h+0.01; }
+
+// ---- readout ----
+function updateReadout(){
+  const ro=document.getElementById('readout'), al=document.getElementById('alerts');
+  let rows='';
+  const A=byId('A'),Bc=byId('B');
+  if(sel){
+    const f=foot(sel);
+    rows+=`<b>Seleccionado</b><span>${sel.name}${sel.type==='cancha'?' — escurre '+drainName(sel.drain):''}</span>`;
+    if(sel.type==='muro'){
+      const L=Math.max(f.r-f.l,f.b-f.t), T=Math.min(f.r-f.l,f.b-f.t);
+      rows+=`<b>${sel.kind==='mural'?'Pared mural':'Pared común'}</b><span>largo ${fmt(L)} m · alto ${fmt(sel.h||1.8)} m · espesor ${fmt(T)} m</span>`;
+    } else if(isBox(sel)){
+      rows+=`<b>Tamaño</b><span>${fmt(f.r-f.l)} × ${fmt(f.b-f.t)} m${sel.type==='techo'?' · '+fmt((f.r-f.l)*(f.b-f.t))+' m²':''}</span>`;
+    } else if(sel.type==='poste'){
+      rows+=`<b>Posición</b><span>a Alvear ${fmt(sel.cx)} · a López ${fmt(LOT.w-sel.cx)} · a 25 de Sept ${fmt(LOT.h-sel.cy)} m</span>`;
+    } else if(sel.type==='reja'){
+      rows+=`<b>Reja</b><span><b style="color:#d94f3d">${fmt(rejaLen(sel))} m</b> · alto ${fmt(sel.h||6)} m · ${fmt(rejaLen(sel)*(sel.h||6))} m² · ${sel.pts.length} pts</span>`;
+    } else {
+      rows+=`<b>Tamaño</b><span>${fmt(f.ew)} × ${fmt(f.eh)} m</span>`;
+      rows+=`<b>A los bordes</b><span>Alvear ${fmt(f.t)} · López ${fmt(LOT.h-f.b)} · izq ${fmt(f.l)} · der ${fmt(LOT.w-f.r)} m</span>`;
+    }
+  } else {
+    rows+=`<b>Seleccionado</b><span style="color:var(--muted)">nada — tocá una cancha</span>`;
+  }
+  // gap between courts
+  if(A&&Bc){
+    const fa=foot(A),fb=foot(Bc);
+    const gy=intervalGap(fa.t,fa.b,fb.t,fb.b), gx=intervalGap(fa.l,fa.r,fb.l,fb.r);
+    let gapTxt;
+    if(gx>0.05 && gy<=0.05) gapTxt=fmt(gx)+' m (lado a lado)';
+    else if(gy>0.05 && gx<=0.05) gapTxt=fmt(gy)+' m (una arriba de la otra)';
+    else if(gx>0.05||gy>0.05) gapTxt=fmt(Math.max(gx,gy))+' m';
+    else gapTxt='0 — se tocan/pisan';
+    rows+=`<b>Entre canchas</b><span>${gapTxt}</span>`;
+  }
+  const nP=objs.filter(o=>o.type==='poste'&&!o.cam).length;
+  if(nP) rows+=`<b>Iluminación</b><span>${nP} postes · ~${(nP*0.8).toFixed(1)} kW (${nP*(16/6)|0} focos LED aprox)</span>`;
+  // ---- reja / materiales (objetivo 6 m) ----
+  const TARGET=6;
+  const muros=objs.filter(o=>o.type==='muro');
+  const wallLen=muros.reduce((s,o)=>{const f=foot(o);return s+Math.max(f.r-f.l,f.b-f.t);},0);
+  const rejaSobrePared=muros.reduce((s,o)=>{const f=foot(o);const L=Math.max(f.r-f.l,f.b-f.t);return s+L*Math.max(0,TARGET-(o.h||1.8));},0);
+  if(rejaSobrePared>0.5) rows+=`<b>Reja s/ paredes → 6 m</b><span><b style="color:var(--accent)">${fmt(rejaSobrePared)} m²</b> (completar arriba de las paredes bajas)</span>`;
+  const cercoO=byId('F');
+  if(cercoO){ const cf=foot(cercoO), per=2*((cf.r-cf.l)+(cf.b-cf.t));
+    rows+=`<b>Cerco perimetral</b><span>${fmt(Math.max(0,per-wallLen))} m borde (bajo) · paredes ${fmt(wallLen)} m</span>`; }
+  const rejas=objs.filter(o=>o.type==='reja');
+  if(rejas.length){
+    const len=a=>a.reduce((s,o)=>s+rejaLen(o),0);
+    const m2=a=>a.reduce((s,o)=>s+rejaLen(o)*(o.h||6),0);
+    const postes=a=>{ let n=0; a.forEach(o=>{ let p=1; for(let i=0;i<o.pts.length-1;i++){
+      p+=Math.max(1,Math.ceil(Math.hypot(o.pts[i+1].x-o.pts[i].x,o.pts[i+1].y-o.pts[i].y)/postSpacing)); } n+=p; }); return n; };
+    const r6=rejas.filter(o=>(o.h||6)>=4), r2=rejas.filter(o=>(o.h||6)<4);
+    if(r6.length) rows+=`<b>Reja 6 m (jaula)</b><span><b style="color:#d94f3d">${fmt(len(r6))} m · ${fmt(m2(r6))} m²</b> · ~${postes(r6)} postes (c/ ${fmt(postSpacing)} m)</span>`;
+    if(r2.length) rows+=`<b>Reja 2 m (perímetro)</b><span><b style="color:#2b8fd6">${fmt(len(r2))} m · ${fmt(m2(r2))} m²</b> · ~${postes(r2)} postes (c/ ${fmt(postSpacing)} m)</span>`;
+  }
+  ro.innerHTML=rows;
+
+  let w=[];
+  const canchas=objs.filter(o=>o.type==='cancha');
+  if(canchas.some(c=>overlapWith(c))) w.push('⚠️ Hay canchas que se están pisando.');
+  canchas.forEach(c=>{ if(outOfLot(foot(c))) w.push('⚠️ '+c.name+' se sale del terreno.'); });
+  if(sameDrainToMiddle()) w.push('💧 Ojo: hay una cancha escurriendo hacia la cantina del medio.');
+  al.innerHTML = w.length? w.map(t=>`<div class="warn">${t}</div>`).join('')
+    : `<div class="ok">✓ Layout válido: nada se pisa ni se sale del terreno.</div>`;
+}
+function drainName(d){ return {left:'a Alvear (izq)',right:'a López (der)',up:'al lindero (arriba)',down:'al lindero (abajo)'}[d]; }
+function sameDrainToMiddle(){
+  // heuristic: cantina roughly between courts; warn if a court drains toward cantina
+  const cant=byId('C'); if(!cant) return false;
+  const fc=foot(cant);
+  return objs.filter(o=>o.type==='cancha').some(o=>{
+    const dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}; const [dx,dy]=dirs[o.drain];
+    // vector from court center to cantina center
+    const vx=cant.cx-o.cx, vy=cant.cy-o.cy;
+    return (dx*vx+dy*vy) > 0 && Math.hypot(vx,vy) < 30; // pointing toward nearby cantina
+  });
+}
+
+// ---- interaction ----
+function pos(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function hit(mx,my){
+  const boxes=objs.filter(isBox).sort((a,b)=>(a.type==='cerco'?1:0)-(b.type==='cerco'?1:0)); // cerco al final
+  // 1) manijas de esquina (boxes no bloqueados)
+  for(const o of boxes){
+    if(o.locked) continue;
+    const f=foot(o), hs=10;
+    const corners=[['x0y0',f.l,f.t],['x1y0',f.r,f.t],['x0y1',f.l,f.b],['x1y1',f.r,f.b]];
+    for(const [k,cxm,cym] of corners){
+      if(Math.abs(mx-X(cxm))<hs && Math.abs(my-Y(cym))<hs) return {o,mode:'resize',corner:k};
+    }
+  }
+  // 2) cuerpo de paredes (con tolerancia porque son finas). Muro bloqueado = solo seleccionar.
+  for(const o of objs.filter(o=>o.type==='muro')){
+    const f=foot(o), tol=0.9;
+    if(mx>=X(f.l-tol)&&mx<=X(f.r+tol)&&my>=Y(f.t-tol)&&my<=Y(f.b+tol)) return {o,mode:o.locked?'select':'move'};
+  }
+  // 2.5) líneas de reja (finas, por distancia al segmento) — antes que los cuerpos grandes
+  { const pmx=mX(mx), pmy=mY(my);
+    for(const o of objs.filter(o=>o.type==='reja')){
+      for(let i=0;i<o.pts.length-1;i++){
+        if(distToSeg(pmx,pmy,o.pts[i],o.pts[i+1])<1.1) return {o,mode:'movereja'};
+      }
+    } }
+  // 3) cuerpos de canchas/cantina/postes (arriba primero)
+  const stack=objs.filter(o=>o.type==='cancha'||o.type==='cantina'||o.type==='poste');
+  for(let i=stack.length-1;i>=0;i--){
+    const f=foot(stack[i]);
+    if(mx>=X(f.l)&&mx<=X(f.r)&&my>=Y(f.t)&&my<=Y(f.b)) return {o:stack[i],mode:'move'};
+  }
+  // 4) cuerpos de techo/cerco
+  for(const o of boxes){ if(o.type==='muro') continue; const f=foot(o);
+    if(mx>=X(f.l)&&mx<=X(f.r)&&my>=Y(f.t)&&my<=Y(f.b)) return {o,mode:'move'};
+  }
+  return null;
+}
+cv.addEventListener('pointerdown',e=>{
+  const p=pos(e);
+  if(drawingReja){
+    let mx2=mX(p.x), my2=mY(p.y); if(opt.snap){ mx2=snap(mx2); my2=snap(my2); }
+    if(rejaPts.length){ const q=orthoTo(rejaPts[rejaPts.length-1],mx2,my2); mx2=q.x; my2=q.y; }
+    const now=Date.now();
+    if(now-rejaLastClick<300 && rejaPts.length>=2){ commitReja(); return; } // doble clic: termina y seguís
+    rejaLastClick=now; rejaPts.push({x:mx2,y:my2}); draw(); return;
+  }
+  const h=hit(p.x,p.y);
+  if(!h){ sel=null; ctxButtons(); draw(); return; }
+  sel=h.o; ctxButtons();
+  if(h.mode==='select'){ draw(); return; }  // bloqueado: se selecciona pero no se arrastra
+  cv.setPointerCapture(e.pointerId);
+  if(h.mode==='movereja'){
+    drag={mode:'movereja',ox:mX(p.x),oy:mY(p.y),orig:h.o.pts.map(pt=>({x:pt.x,y:pt.y}))};
+  } else if(h.mode==='move'){
+    if(isBox(h.o)){ const f=foot(h.o);
+      drag={mode:'movecerco',ox:mX(p.x)-f.l,oy:mY(p.y)-f.t}; }
+    else drag={mode:'move',ox:mX(p.x)-h.o.cx,oy:mY(p.y)-h.o.cy};
+  } else { drag={mode:'resize',corner:h.corner}; }
+  drag.committed=false;
+  draw();
+});
+cv.addEventListener('pointermove',e=>{
+  if(drawingReja){ const p=pos(e); let mx2=mX(p.x), my2=mY(p.y); if(opt.snap){mx2=snap(mx2);my2=snap(my2);}
+    if(rejaPts.length){ const q=orthoTo(rejaPts[rejaPts.length-1],mx2,my2); mx2=q.x; my2=q.y; }
+    rejaCursor={x:mx2,y:my2}; draw(); return; }
+  if(!drag) return;
+  if(!drag.committed){ pushHistory(); drag.committed=true; }
+  const p=pos(e), o=sel;
+  if(drag.mode==='movereja'){
+    const dx=mX(p.x)-drag.ox, dy=mY(p.y)-drag.oy;
+    o.pts=drag.orig.map(pt=>({x:pt.x+dx,y:pt.y+dy}));
+    draw(); return;
+  }
+  if(drag.mode==='move'){
+    o.cx=snap(mX(p.x)-drag.ox); o.cy=snap(mY(p.y)-drag.oy);
+  } else if(drag.mode==='movecerco'){
+    const w=Math.abs(o.x1-o.x0), h=Math.abs(o.y1-o.y0);
+    let nx=snap(mX(p.x)-drag.ox), ny=snap(mY(p.y)-drag.oy);
+    nx=Math.max(0,Math.min(LOT.w-w,nx)); ny=Math.max(0,Math.min(LOT.h-h,ny));
+    o.x0=nx;o.y0=ny;o.x1=nx+w;o.y1=ny+h;
+  } else if(drag.mode==='resize'){
+    const c=drag.corner;
+    let vx=Math.max(0,Math.min(LOT.w,snap(mX(p.x)))), vy=Math.max(0,Math.min(LOT.h,snap(mY(p.y))));
+    if(c.startsWith('x0')) o.x0=vx; else o.x1=vx;
+    if(c.endsWith('y0')) o.y0=vy; else o.y1=vy;
+  }
+  draw();
+});
+function endDrag(e){ if(drag){ drag=null; try{cv.releasePointerCapture(e.pointerId)}catch(_){}}}
+cv.addEventListener('pointerup',endDrag);
+cv.addEventListener('pointercancel',endDrag);
+
+// double click / double tap => rotate
+let lastTap=0;
+cv.addEventListener('pointerup',e=>{
+  const now=Date.now();
+  if(now-lastTap<300 && canRotate(sel)){ rotateSel(); }
+  lastTap=now;
+});
+
+// ---- buttons ----
+function ctxButtons(){
+  document.getElementById('btnRot').disabled=!canRotate(sel);
+  document.getElementById('btnDrain').disabled=!(sel&&sel.type==='cancha');
+  document.getElementById('btnDup').disabled=!(sel&&!isBox(sel)&&sel.type!=='reja');
+  document.getElementById('btnDel').disabled=!sel;
+  const rw=document.getElementById('rejaHwrap');
+  if(sel&&sel.type==='reja'){ rw.style.display=''; document.getElementById('rejaH').value=sel.h||6; }
+  else rw.style.display='none';
+  const hw=document.getElementById('muroHwrap');
+  if(sel&&sel.type==='muro'){ hw.style.display='';
+    const f=foot(sel);
+    document.getElementById('muroX').value=Math.round(muroStart(sel)*100)/100;
+    document.getElementById('muroL').value=Math.round(Math.max(f.r-f.l,f.b-f.t)*100)/100;
+    document.getElementById('muroH').value=sel.h||1.8;
+    document.getElementById('muroLock').style.display=sel.locked?'':'none'; }
+  else hw.style.display='none';
+}
+function rotateSel(){ if(canRotate(sel)){ pushHistory(); sel.rot=sel.rot?0:1; if(opt.snap){sel.cx=snap(sel.cx);sel.cy=snap(sel.cy);} draw(); } }
+document.getElementById('btnRot').onclick=rotateSel;
+document.getElementById('btnDrain').onclick=()=>{
+  if(sel&&sel.type==='cancha'){ pushHistory(); const seq=['up','right','down','left'];
+    sel.drain=seq[(seq.indexOf(sel.drain)+1)%4]; draw(); }
+};
+function toggle(btn,key){ opt[key]=!opt[key]; document.getElementById(btn).classList.toggle('on',opt[key]); draw(); }
+document.getElementById('btnGrid').onclick=()=>toggle('btnGrid','grid');
+document.getElementById('btnSnap').onclick=()=>toggle('btnSnap','snap');
+document.getElementById('btnMeas').onclick=()=>toggle('btnMeas','meas');
+document.getElementById('btnSol').onclick=()=>toggle('btnSol','sol18');
+document.getElementById('btnReset').onclick=()=>{ pushHistory(); objs=baseLayout(); sel=null; ctxButtons(); draw(); };
+
+// ---- clipboard / delete / duplicate ----
+function copySel(){ if(sel&&!isBox(sel)){ clip=clone(sel); flash('Copiado'); } }
+function pasteClip(){ if(!clip)return; pushHistory(); const n=clone(clip); n.id='k'+(idc++);
+  n.name=(clip.name||'Objeto').replace(/ \(copia\)$/,'')+' (copia)';
+  n.cx=Math.max(1,Math.min(LOT.w-1,(n.cx||LOT.w/2)+3));
+  n.cy=Math.max(1,Math.min(LOT.h-1,(n.cy||LOT.h/2)+3));
+  objs.push(n); sel=n; ctxButtons(); draw(); flash('Pegado'); }
+function duplicateSel(){ if(sel&&!isBox(sel)){ clip=clone(sel); pasteClip(); } }
+function deleteSel(){ if(!sel)return; pushHistory(); objs=objs.filter(o=>o!==sel); sel=null; ctxButtons(); draw(); flash('Borrado'); }
+document.getElementById('btnDup').onclick=duplicateSel;
+document.getElementById('btnDel').onclick=deleteSel;
+// ---- paredes / muros ----
+let muroC=1;
+function createMuro(kind){
+  pushHistory();
+  // arranca donde termina la última pared del lindero de arriba (continua)
+  const top=objs.filter(o=>o.type==='muro' && Math.min(o.y0,o.y1)<3);
+  const x0=Math.min(top.length? Math.max(...top.map(o=>Math.max(o.x0,o.x1))) : 1, LOT.w-2);
+  const mural=kind==='mural';
+  const m={id:'M'+(muroC++),type:'muro',kind:mural?'mural':'comun',name:mural?'Mural':'Pared',locked:mural,
+    x0:x0,y0:0.2,x1:Math.min(x0+(mural?22.66:18.81),LOT.w),y1:0.5,h:mural?6:1.8};
+  objs.push(m); sel=m; ctxButtons(); draw();
+  flash((mural?'Pared MURAL':'Pared común')+' en el lindero (continua a la anterior) — ajustá largo y alto');
+}
+document.getElementById('btnMuro').onclick=()=>createMuro('comun');
+document.getElementById('btnMural').onclick=()=>createMuro('mural');
+document.getElementById('muroH').addEventListener('input',e=>{
+  if(sel&&sel.type==='muro'){ const v=parseFloat(e.target.value); if(!isNaN(v)){ sel.h=Math.max(0.2,Math.min(8,v)); draw(); } }
+});
+document.getElementById('muroL').addEventListener('input',e=>{
+  if(sel&&sel.type==='muro'){ const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0.5){
+    const w=Math.abs(sel.x1-sel.x0), h=Math.abs(sel.y1-sel.y0);
+    if(w>=h){ const x0=Math.min(sel.x0,sel.x1); sel.x0=x0; sel.x1=x0+v; }
+    else { const y0=Math.min(sel.y0,sel.y1); sel.y0=y0; sel.y1=y0+v; }
+    draw(); } }
+});
+function muroStart(o){ const w=Math.abs(o.x1-o.x0), h=Math.abs(o.y1-o.y0); return w>=h?Math.min(o.x0,o.x1):Math.min(o.y0,o.y1); }
+function setMuroStart(o,v){ const w=Math.abs(o.x1-o.x0), h=Math.abs(o.y1-o.y0);
+  if(w>=h){ o.x0=v; o.x1=v+w; } else { o.y0=v; o.y1=v+h; } }
+document.getElementById('muroX').addEventListener('input',e=>{
+  if(sel&&sel.type==='muro'){ const v=parseFloat(e.target.value); if(!isNaN(v)){ setMuroStart(sel,Math.max(0,Math.min(LOT.w,v))); draw(); } }
+});
+document.getElementById('rejaH').addEventListener('input',e=>{
+  if(sel&&sel.type==='reja'){ const v=parseFloat(e.target.value); if(!isNaN(v)){ sel.h=Math.max(0.5,Math.min(8,v)); draw(); } }
+});
+document.getElementById('postSpace').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=1){ postSpacing=v; draw(); } });
+document.getElementById('btnUndo').onclick=undo;
+document.getElementById('btnRedo').onclick=redo;
+
+// ---- keyboard shortcuts ----
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase(), mod=e.ctrlKey||e.metaKey;
+  if(drawingReja){
+    if(k==='enter'){ e.preventDefault(); commitReja(); return; }              // termina el tramo, seguís en otro lado
+    if(k==='escape'){ e.preventDefault(); if(rejaPts.length){ rejaPts=[]; rejaCursor=null; draw(); } else { exitRejaMode(); } return; }
+  }
+  if(mod&&k==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
+  if(mod&&k==='y'){ e.preventDefault(); redo(); return; }
+  if(mod&&k==='c'){ if(sel&&!isBox(sel)&&sel.type!=='reja'){ e.preventDefault(); copySel(); } return; }
+  if(mod&&k==='v'){ if(clip){ e.preventDefault(); pasteClip(); } return; }
+  if(mod&&k==='d'){ if(sel&&!isBox(sel)&&sel.type!=='reja'){ e.preventDefault(); duplicateSel(); } return; }
+  if(k==='delete'||k==='backspace'){ if(sel){ e.preventDefault(); deleteSel(); } return; }
+  if(k==='escape'){ if(sel){ sel=null; ctxButtons(); draw(); } return; }
+  if(sel&&!isBox(sel)&&sel.type!=='reja'&&['arrowup','arrowdown','arrowleft','arrowright'].includes(k)){
+    e.preventDefault(); pushHistory(); const s=e.shiftKey?1:0.5;
+    if(k==='arrowup')sel.cy-=s; else if(k==='arrowdown')sel.cy+=s;
+    else if(k==='arrowleft')sel.cx-=s; else sel.cx+=s;
+    if(opt.snap){ sel.cx=snap(sel.cx); sel.cy=snap(sel.cy); }
+    draw();
+  }
+});
+
+// ---- guardar / cargar configuraciones ----
+const LSKEY='ladividida_layouts_v1';
+const PRESETS=[
+  {name:'N–S (anti-sol) ⭐', gen:layoutNS},
+  {name:'E–O (a lo ancho)', gen:layoutEO},
+];
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(LSKEY))||{}; }catch(e){ return {}; } }
+function saveStore(o){ try{ localStorage.setItem(LSKEY, JSON.stringify(o)); }catch(e){} }
+// Layout de arranque: si guardaste una config llamada "Default", esa abre; si no, el N–S.
+// Además garantiza el poste de cámaras clavado en el centro.
+function baseLayout(){
+  const d=loadStore()['Default'];
+  const arr = d ? clone(d) : defaults();
+  if(!arr.some(o=>o.type==='poste'&&o.cam))
+    arr.push({id:'CAM',type:'poste',cam:true,fixed:true,name:'Poste cámaras (Beelup)',cx:50,cy:23.35});
+  return arr;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function loadLayout(arr,label){ if(!arr)return; pushHistory(); objs=clone(arr); sel=null; ctxButtons(); draw(); flash('Cargado: '+label); }
+function renderCfgList(){
+  const list=document.getElementById('cfgList'); if(!list) return;
+  const store=loadStore(), names=Object.keys(store);
+  let html='';
+  PRESETS.forEach((p,i)=>{ html+=`<div class="cfg"><span class="nm preset" data-p="${i}">${p.name}</span></div>`; });
+  if(names.length){ names.forEach((n,i)=>{
+    html+=`<div class="cfg"><span class="nm" data-u="${i}" title="Cargar">${escapeHtml(n)}</span><button class="del" data-d="${i}" title="Borrar">×</button></div>`; });
+  } else { html+=`<div class="empty">— Guardá tu primer layout con el botón de arriba —</div>`; }
+  list.innerHTML=html;
+  list.querySelectorAll('[data-p]').forEach(el=>el.onclick=()=>{ const p=PRESETS[+el.dataset.p]; loadLayout(p.gen(),p.name); });
+  list.querySelectorAll('[data-u]').forEach(el=>el.onclick=()=>{ const n=names[+el.dataset.u]; loadLayout(loadStore()[n],n); });
+  list.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>{ const n=names[+el.dataset.d];
+    const s=loadStore(); delete s[n]; saveStore(s); renderCfgList(); flash('Borrado: '+n); });
+}
+document.getElementById('btnSave').onclick=()=>{
+  const inp=document.getElementById('cfgName'); let n=(inp.value||'').trim();
+  if(!n){ n='Config '+(Object.keys(loadStore()).length+1); }
+  const s=loadStore(); s[n]=clone(objs); saveStore(s); inp.value=''; renderCfgList(); flash('Guardado: '+n);
+};
+document.getElementById('cfgName').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('btnSave').click(); } });
+
+window.addEventListener('resize',resize);
+objs=baseLayout();   // al abrir, carga tu config "Default" si existe
+refreshHist();
+renderCfgList();
+resize();
+</script>

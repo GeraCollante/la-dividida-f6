@@ -3,72 +3,54 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>LA DIVIDIDA F6 — Complejo 3D</title>
+<title>LA DIVIDIDA F6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Protest+Strike&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0e13; font-family: system-ui, sans-serif; }
-  #app { width: 100vw; height: 100vh; display: block; }
-  #ui {
-    position: fixed; left: 16px; bottom: 16px; color: #e8eef6;
-    background: rgba(15,20,28,0.6); backdrop-filter: blur(8px);
-    padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.5;
-    border: 1px solid rgba(255,255,255,0.08); max-width: 260px; user-select: none;
+  html, body {
+    width: 100%; height: 100%; font-family: system-ui, sans-serif;
+    background: radial-gradient(ellipse at 50% 0%, #16241c 0%, #0b0e13 70%);
+    color: #e8eef6; display: flex; align-items: center; justify-content: center;
   }
-  #ui b { color: #7fe3a0; }
-  #ui .keys { opacity: 0.7; font-size: 12px; margin-top: 6px; }
-  #loading {
-    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-    color: #7fe3a0; font-size: 15px; letter-spacing: 0.5px;
+  main { text-align: center; padding: 24px; }
+  h1 {
+    font-family: "Protest Strike", system-ui, sans-serif;
+    font-weight: 400; font-size: clamp(2.4rem, 8vw, 4.5rem);
+    color: #ffd24a; letter-spacing: 1px; margin-bottom: 6px;
+    text-shadow: 0 0 24px rgba(255, 210, 74, 0.35);
   }
-  .btns { position: fixed; right: 16px; top: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-  .btns .row { display: flex; gap: 8px; }
-  .btns .slider {
-    display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
-    background: rgba(15,20,28,0.7); color: #e8eef6; border: 1px solid rgba(255,255,255,0.12);
-    padding: 8px 12px; border-radius: 10px; font-size: 12px; backdrop-filter: blur(8px);
+  p.sub { color: #9fb0a4; margin-bottom: 40px; font-size: 15px; }
+  .cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  a.card {
+    display: block; width: 220px; padding: 28px 20px; text-decoration: none;
+    color: #e8eef6; background: rgba(15, 20, 28, 0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
+    transition: transform 0.15s, border-color 0.15s;
   }
-  .btns .slider input { width: 130px; cursor: pointer; }
-  .btns button {
-    background: rgba(15,20,28,0.7); color: #e8eef6; border: 1px solid rgba(255,255,255,0.12);
-    padding: 8px 12px; border-radius: 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px);
-  }
-  .btns button:hover { background: rgba(40,55,72,0.8); }
+  a.card:hover { transform: translateY(-4px); border-color: #7fe3a0; }
+  .card .icon { font-size: 40px; margin-bottom: 12px; display: block; }
+  .card b { font-size: 17px; display: block; margin-bottom: 6px; color: #7fe3a0; }
+  .card span { font-size: 13px; color: #9fb0a4; line-height: 1.4; display: block; }
 </style>
 </head>
 <body>
-<div id="loading">Cargando cancha…</div>
-<canvas id="app"></canvas>
-<div id="ui">
-  <b>Complejo LA DIVIDIDA · F6</b><br/>
-  2 canchas 40 × 20 m · predio ~2.400 m²
-  <div class="keys">
-    🖱️ Arrastrar = rotar · Rueda = zoom · Click derecho = mover
+<main>
+  <h1>LA DIVIDIDA F6</h1>
+  <p class="sub">Complejo de 2 canchas de fútbol 6 — Río Primero, Córdoba</p>
+  <div class="cards">
+    <a class="card" href="render/">
+      <span class="icon">🏟️</span>
+      <b>Render 3D</b>
+      <span>Maqueta interactiva del complejo: canchas, jaula, reja, cantina y luces día/noche.</span>
+    </a>
+    <a class="card" href="plano-2d/">
+      <span class="icon">📐</span>
+      <b>Plano 2D</b>
+      <span>Planificador del predio real: arrastrá canchas, cerco y cantina sobre el terreno.</span>
+    </a>
   </div>
-</div>
-<div class="btns">
-  <div class="row">
-    <button id="btnDay">Día</button>
-    <button id="btnNight">Noche</button>
-    <button id="btnDims">Medidas</button>
-  </div>
-  <label class="slider">
-    💡 Luces <span id="lightVal">110</span>
-    <input id="lightSlider" type="range" min="0" max="400" value="110" />
-  </label>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
-
-<script type="module" src="main.js"></script>
+</main>
 </body>
 </html>
